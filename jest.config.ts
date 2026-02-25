@@ -4,7 +4,7 @@ const config: Config = {
   preset: 'ts-jest',
   testEnvironment: 'node',
   roots: ['<rootDir>/tests'],
-  globalSetup: './tests/setup.ts',
+  setupFiles: ['./tests/setup.ts'],
   testMatch: ['**/*.test.ts'],
   collectCoverageFrom: [
     'src/**/*.ts',

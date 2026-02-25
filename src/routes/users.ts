@@ -8,13 +8,13 @@ const router = Router()
 
 const createUserSchema = z.object({
   id: z.string().uuid(),
-  name: z.string().min(1),
+  name: z.string().trim().min(1),
   email: z.string().email(),
   notificationTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
 })
 
 const updateUserSchema = z.object({
-  name: z.string().min(1).optional(),
+  name: z.string().trim().min(1).optional(),
   notificationTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
 })
 

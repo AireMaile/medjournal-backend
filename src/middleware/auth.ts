@@ -2,8 +2,6 @@ import { Response, NextFunction } from 'express'
 import jwt from 'jsonwebtoken'
 import { AuthenticatedRequest, AppError } from '../types'
 
-const JWT_SECRET = process.env.SUPABASE_JWT_SECRET!
-
 export function authenticate(
   req: AuthenticatedRequest,
   res: Response,
@@ -16,6 +14,7 @@ export function authenticate(
   }
 
   const token = authHeader.split(' ')[1]
+  const JWT_SECRET = process.env.SUPABASE_JWT_SECRET!
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as { sub: string }
