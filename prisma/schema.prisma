@@ -1,0 +1,119 @@
+// MedJournal - Prisma Schema
+// Database: Supabase (PostgreSQL)
+// Auth: Supabase Auth (users managed externally, referenced by UUID)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// USERS
+// Supabase Auth manages authentication.
+// This table stores app-specific user preferences,
+// linked to the Supabase auth.users UUID.
+// ─────────────────────────────────────────────
+model User {
+  id                   String           @id @default(uuid()) // mirrors Supabase auth UID
+  name                 String
+  email                String           @unique
+  notificationTime     String?          // e.g. "08:00" — time of daily reminder
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+
+  userMedications      UserMedication[]
+  moodLogs             MoodLog[]
+
+  @@map("users")
+}
+
+// ─────────────────────────────────────────────
+// MEDICATIONS (Master List)
+// A reference list of known medications.
+// Used to power the dropdown / autocomplete in the app.
+// Can be pre-seeded with common antidepressants.
+// ─────────────────────────────────────────────
+model Medication {
+  id               String           @id @default(uuid())
+  name             String           @unique
+  category         String?          // e.g. "SSRI", "SNRI", "Tricyclic"
+  commonDosages    String[]         // e.g. ["50mg", "100mg", "150mg"]
+  createdAt        DateTime         @default(now())
+
+  userMedications  UserMedication[]
+
+  @@map("medications")
+}
+
+// ─────────────────────────────────────────────
+// USER MEDICATIONS
+// A user's personal prescription history.
+// When a dosage changes or a medication is switched,
+// the current record is ended (endDate set) and a
+// new record is created. This preserves full history
+// and allows the trend chart to mark change events.
+// ─────────────────────────────────────────────
+model UserMedication {
+  id             String      @id @default(uuid())
+  userId         String
+  medicationId   String?     // nullable — allows free-text custom medication
+  customName     String?     // used if medication is not in the master list
+  dosage         String
+  startDate      DateTime
+  endDate        DateTime?   // null = currently active
+  notes          String?     // e.g. "switched due to nausea"
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  medication     Medication? @relation(fields: [medicationId], references: [id])
+  moodLogs       MoodLog[]
+
+  @@map("user_medications")
+}
+
+// ─────────────────────────────────────────────
+// MOOD LOGS
+// One log per day per user. The userMedicationId
+// captures which prescription was active at the
+// time of logging — critical for trend analysis.
+// LogType distinguishes quick vs in-depth entries.
+// ─────────────────────────────────────────────
+model MoodLog {
+  id                 String          @id @default(uuid())
+  userId             String
+  userMedicationId   String          // active prescription at time of log
+  logDate            DateTime        // date only — one per day
+  logType            LogType         @default(QUICK)
+
+  // Quick Log fields (always present)
+  moodScore          Int             // 1–5
+  energyScore        Int             // 1–5
+  quickNote          String?
+
+  // In-Depth Log fields (nullable — only set if logType = DETAILED)
+  sleepQuality       Int?            // 1–5
+  sleepHours         Float?
+  anxietyScore       Int?            // 1–5
+  appetiteScore      Int?            // 1–5
+  socialMotivation   Int?            // 1–5
+  detailedNote       String?
+
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  user               User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userMedication     UserMedication  @relation(fields: [userMedicationId], references: [id])
+
+  @@unique([userId, logDate]) // enforce one log per user per day
+  @@map("mood_logs")
+}
+
+enum LogType {
+  QUICK
+  DETAILED
+}
