@@ -4,7 +4,6 @@ import { AppError, CreateUserMedicationBody, EndUserMedicationBody } from '../ty
 export async function getUserMedications(userId: string, activeOnly?: boolean) {
   return prisma.userMedication.findMany({
     where: { userId, ...(activeOnly && { endDate: null }) },
-    include: { medication: { select: { name: true, category: true } } },
     orderBy: { startDate: 'desc' },
   })
 }
@@ -19,19 +18,13 @@ export async function getActiveUserMedication(userId: string) {
 }
 
 export async function addUserMedication(userId: string, data: CreateUserMedicationBody) {
-  if (!data.medicationId && !data.customName) {
-    throw new AppError('VALIDATION_ERROR', 'Either medicationId or customName must be provided', 422)
-  }
   return prisma.userMedication.create({
     data: {
       userId,
-      medicationId: data.medicationId ?? null,
-      customName: data.customName ?? null,
-      dosage: data.dosage,
+      name: data.name,
       startDate: new Date(data.startDate),
       notes: data.notes ?? null,
     },
-    include: { medication: { select: { name: true } } },
   })
 }
 
@@ -41,7 +34,7 @@ export async function updateUserMedication(userId: string, medicationId: string,
   return prisma.userMedication.update({
     where: { id: medicationId },
     data: {
-      ...(data.dosage && { dosage: data.dosage }),
+      ...(data.name && { name: data.name }),
       ...(data.notes !== undefined && { notes: data.notes }),
       ...(data.startDate && { startDate: new Date(data.startDate) }),
     },

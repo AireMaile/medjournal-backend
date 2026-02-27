@@ -24,8 +24,6 @@ export class AppError extends Error {
   }
 }
 
-export type LogType = 'QUICK' | 'DETAILED'
-
 export interface CreateUserBody {
   id: string
   name: string
@@ -39,9 +37,7 @@ export interface UpdateUserBody {
 }
 
 export interface CreateUserMedicationBody {
-  medicationId?: string
-  customName?: string
-  dosage: string
+  name: string
   startDate: string
   notes?: string
 }
@@ -53,16 +49,10 @@ export interface EndUserMedicationBody {
 
 export interface CreateLogBody {
   logDate: string
-  logType: LogType
+  dosage: string
   moodScore: number
   energyScore: number
-  quickNote?: string
-  sleepQuality?: number
-  sleepHours?: number
-  anxietyScore?: number
-  appetiteScore?: number
-  socialMotivation?: number
-  detailedNote?: string
+  note?: string
 }
 
 export interface UpdateLogBody extends Partial<CreateLogBody> {}

@@ -1,8 +1,2 @@
-import { Router } from 'express'
-import * as MedicationsController from '../controllers/medications'
-
-const router = Router()
-
-router.get('/', MedicationsController.getMedications)
-
-export default router
+// DEPRECATED — medications master list removed.
+// This file is safe to delete.

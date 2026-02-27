@@ -5,7 +5,6 @@ export async function clearDatabase(): Promise<void> {
   await prisma.moodLog.deleteMany()
   await prisma.userMedication.deleteMany()
   await prisma.user.deleteMany()
-  await prisma.medication.deleteMany()
 }
 
 export async function createTestUser(overrides?: Partial<{ id: string; name: string; email: string; notificationTime: string }>) {
@@ -19,26 +18,14 @@ export async function createTestUser(overrides?: Partial<{ id: string; name: str
   })
 }
 
-export async function createTestMedication(overrides?: Partial<{ name: string; category: string; commonDosages: string[] }>) {
-  return prisma.medication.create({
-    data: {
-      name: overrides?.name ?? `Medication-${uuid()}`,
-      category: overrides?.category ?? 'SSRI',
-      commonDosages: overrides?.commonDosages ?? ['50mg', '100mg'],
-    },
-  })
-}
-
 export async function createTestUserMedication(
   userId: string,
-  overrides?: Partial<{ medicationId: string; customName: string; dosage: string; startDate: Date; endDate: Date | null; notes: string }>
+  overrides?: Partial<{ name: string; startDate: Date; endDate: Date | null; notes: string }>
 ) {
   return prisma.userMedication.create({
     data: {
       userId,
-      medicationId: overrides?.medicationId ?? null,
-      customName: overrides?.customName ?? 'Sertraline',
-      dosage: overrides?.dosage ?? '50mg',
+      name: overrides?.name ?? 'Sertraline',
       startDate: overrides?.startDate ?? new Date('2026-01-01'),
       endDate: overrides?.endDate ?? null,
       notes: overrides?.notes ?? null,
@@ -49,16 +36,17 @@ export async function createTestUserMedication(
 export async function createTestLog(
   userId: string,
   userMedicationId: string,
-  overrides?: Partial<{ logDate: string; moodScore: number; energyScore: number }>
+  overrides?: Partial<{ logDate: string; dosage: string; moodScore: number; energyScore: number; note: string }>
 ) {
   return prisma.moodLog.create({
     data: {
       userId,
       userMedicationId,
       logDate: new Date(overrides?.logDate ?? '2026-02-25'),
-      logType: 'QUICK',
+      dosage: overrides?.dosage ?? '50mg',
       moodScore: overrides?.moodScore ?? 3,
       energyScore: overrides?.energyScore ?? 3,
+      note: overrides?.note ?? null,
     },
   })
 }

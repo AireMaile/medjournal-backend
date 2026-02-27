@@ -7,15 +7,13 @@ import * as UserMedicationsController from '../controllers/userMedications'
 const router = Router({ mergeParams: true })
 
 const addMedicationSchema = z.object({
-  medicationId: z.string().uuid().optional(),
-  customName: z.string().min(1).optional(),
-  dosage: z.string().min(1),
+  name: z.string().min(1),
   startDate: z.string().datetime({ offset: true }).or(z.string().date()),
   notes: z.string().optional(),
 })
 
 const updateMedicationSchema = z.object({
-  dosage: z.string().min(1).optional(),
+  name: z.string().min(1).optional(),
   notes: z.string().optional(),
   startDate: z.string().datetime({ offset: true }).or(z.string().date()).optional(),
 })

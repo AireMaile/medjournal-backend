@@ -1,8 +1,14 @@
 /**
  * tests/logs/createLog.test.ts
  *
- * Written BEFORE the implementation.
- * These tests define the expected behaviour of POST /users/:user_id/logs.
+ * Integration tests for POST /v1/users/:user_id/logs.
+ *
+ * Log shape (MVP):
+ *   - logDate    (required)
+ *   - dosage     (required)
+ *   - moodScore  (required, 1–5)
+ *   - energyScore (required, 1–5)
+ *   - note       (optional)
  */
 
 import request from 'supertest'
@@ -10,7 +16,7 @@ import app from '../../src/app'
 import { createTestUser, createTestUserMedication, clearDatabase } from '../helpers/factories'
 import { generateMockJwt } from '../helpers/auth'
 
-describe('POST /users/:user_id/logs', () => {
+describe('POST /v1/users/:user_id/logs', () => {
   let userId: string
   let userMedicationId: string
   let authToken: string
@@ -26,48 +32,55 @@ describe('POST /users/:user_id/logs', () => {
 
   // ─── Happy Paths ────────────────────────────────────────────────
 
-  it('creates a quick log with required fields', async () => {
+  it('creates a log with required fields and returns 201', async () => {
     const res = await request(app)
       .post(`/v1/users/${userId}/logs`)
       .set('Authorization', `Bearer ${authToken}`)
       .send({
         logDate: '2026-02-25',
-        logType: 'QUICK',
+        dosage: '50mg',
         moodScore: 3,
         energyScore: 4,
       })
 
     expect(res.status).toBe(201)
     expect(res.body).toMatchObject({
-      logDate: '2026-02-25',
-      logType: 'QUICK',
       moodScore: 3,
       energyScore: 4,
+      dosage: '50mg',
     })
     expect(res.body.id).toBeDefined()
   })
 
-  it('creates a detailed log with all optional fields', async () => {
+  it('creates a log with an optional note', async () => {
     const res = await request(app)
       .post(`/v1/users/${userId}/logs`)
       .set('Authorization', `Bearer ${authToken}`)
       .send({
         logDate: '2026-02-25',
-        logType: 'DETAILED',
+        dosage: '50mg',
         moodScore: 4,
         energyScore: 3,
-        sleepQuality: 4,
-        sleepHours: 7.5,
-        anxietyScore: 2,
-        appetiteScore: 4,
-        socialMotivation: 3,
-        detailedNote: 'Felt steadier today.',
+        note: 'Felt steadier today.',
       })
 
     expect(res.status).toBe(201)
-    expect(res.body.logType).toBe('DETAILED')
-    expect(res.body.sleepHours).toBe(7.5)
-    expect(res.body.detailedNote).toBe('Felt steadier today.')
+    expect(res.body.note).toBe('Felt steadier today.')
+  })
+
+  it('creates a log without a note and note is null', async () => {
+    const res = await request(app)
+      .post(`/v1/users/${userId}/logs`)
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({
+        logDate: '2026-02-25',
+        dosage: '50mg',
+        moodScore: 3,
+        energyScore: 3,
+      })
+
+    expect(res.status).toBe(201)
+    expect(res.body.note).toBeNull()
   })
 
   it('stores the active userMedicationId on the log', async () => {
@@ -76,7 +89,7 @@ describe('POST /users/:user_id/logs', () => {
       .set('Authorization', `Bearer ${authToken}`)
       .send({
         logDate: '2026-02-25',
-        logType: 'QUICK',
+        dosage: '50mg',
         moodScore: 3,
         energyScore: 3,
       })
@@ -85,12 +98,27 @@ describe('POST /users/:user_id/logs', () => {
     expect(res.body.userMedicationId).toBe(userMedicationId)
   })
 
+  it('stores the dosage on the log', async () => {
+    const res = await request(app)
+      .post(`/v1/users/${userId}/logs`)
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({
+        logDate: '2026-02-25',
+        dosage: '100mg',
+        moodScore: 3,
+        energyScore: 3,
+      })
+
+    expect(res.status).toBe(201)
+    expect(res.body.dosage).toBe('100mg')
+  })
+
   // ─── Conflict ───────────────────────────────────────────────────
 
   it('returns 409 if a log already exists for the same date', async () => {
     const payload = {
       logDate: '2026-02-25',
-      logType: 'QUICK',
+      dosage: '50mg',
       moodScore: 3,
       energyScore: 3,
     }
@@ -111,14 +139,42 @@ describe('POST /users/:user_id/logs', () => {
 
   // ─── Validation ─────────────────────────────────────────────────
 
+  it('returns 422 if dosage is missing', async () => {
+    const res = await request(app)
+      .post(`/v1/users/${userId}/logs`)
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({
+        logDate: '2026-02-25',
+        moodScore: 3,
+        energyScore: 3,
+      })
+
+    expect(res.status).toBe(422)
+    expect(res.body.error.code).toBe('VALIDATION_ERROR')
+  })
+
   it('returns 422 if moodScore is missing', async () => {
     const res = await request(app)
       .post(`/v1/users/${userId}/logs`)
       .set('Authorization', `Bearer ${authToken}`)
       .send({
         logDate: '2026-02-25',
-        logType: 'QUICK',
+        dosage: '50mg',
         energyScore: 3,
+      })
+
+    expect(res.status).toBe(422)
+    expect(res.body.error.code).toBe('VALIDATION_ERROR')
+  })
+
+  it('returns 422 if energyScore is missing', async () => {
+    const res = await request(app)
+      .post(`/v1/users/${userId}/logs`)
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({
+        logDate: '2026-02-25',
+        dosage: '50mg',
+        moodScore: 3,
       })
 
     expect(res.status).toBe(422)
@@ -131,7 +187,7 @@ describe('POST /users/:user_id/logs', () => {
       .set('Authorization', `Bearer ${authToken}`)
       .send({
         logDate: '2026-02-25',
-        logType: 'QUICK',
+        dosage: '50mg',
         moodScore: 6,
         energyScore: 3,
       })
@@ -145,7 +201,7 @@ describe('POST /users/:user_id/logs', () => {
       .set('Authorization', `Bearer ${authToken}`)
       .send({
         logDate: '2026-02-25',
-        logType: 'QUICK',
+        dosage: '50mg',
         moodScore: 0,
         energyScore: 3,
       })
@@ -159,7 +215,7 @@ describe('POST /users/:user_id/logs', () => {
       .set('Authorization', `Bearer ${authToken}`)
       .send({
         logDate: 'not-a-date',
-        logType: 'QUICK',
+        dosage: '50mg',
         moodScore: 3,
         energyScore: 3,
       })
@@ -174,7 +230,7 @@ describe('POST /users/:user_id/logs', () => {
       .post(`/v1/users/${userId}/logs`)
       .send({
         logDate: '2026-02-25',
-        logType: 'QUICK',
+        dosage: '50mg',
         moodScore: 3,
         energyScore: 3,
       })
@@ -191,7 +247,7 @@ describe('POST /users/:user_id/logs', () => {
       .set('Authorization', `Bearer ${otherToken}`)
       .send({
         logDate: '2026-02-25',
-        logType: 'QUICK',
+        dosage: '50mg',
         moodScore: 3,
         energyScore: 3,
       })

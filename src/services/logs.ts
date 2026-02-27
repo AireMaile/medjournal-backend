@@ -10,7 +10,7 @@ export async function getLogs(userId: string, from?: string, to?: string, logDat
       ...(!logDate && from && to && { logDate: { gte: new Date(from), lte: new Date(to) } }),
     },
     include: {
-      userMedication: { include: { medication: { select: { name: true } } } },
+      userMedication: { select: { name: true } },
     },
     orderBy: { logDate: 'desc' },
   })
@@ -23,19 +23,13 @@ export async function createLog(userId: string, data: CreateLogBody) {
       userId,
       userMedicationId: activeMedication.id,
       logDate: new Date(data.logDate),
-      logType: data.logType,
+      dosage: data.dosage,
       moodScore: data.moodScore,
       energyScore: data.energyScore,
-      quickNote: data.quickNote ?? null,
-      sleepQuality: data.sleepQuality ?? null,
-      sleepHours: data.sleepHours ?? null,
-      anxietyScore: data.anxietyScore ?? null,
-      appetiteScore: data.appetiteScore ?? null,
-      socialMotivation: data.socialMotivation ?? null,
-      detailedNote: data.detailedNote ?? null,
+      note: data.note ?? null,
     },
     include: {
-      userMedication: { include: { medication: { select: { name: true } } } },
+      userMedication: { select: { name: true } },
     },
   })
 }
@@ -46,16 +40,10 @@ export async function updateLog(userId: string, logId: string, data: UpdateLogBo
   return prisma.moodLog.update({
     where: { id: logId },
     data: {
-      ...(data.logType && { logType: data.logType }),
+      ...(data.dosage !== undefined && { dosage: data.dosage }),
       ...(data.moodScore !== undefined && { moodScore: data.moodScore }),
       ...(data.energyScore !== undefined && { energyScore: data.energyScore }),
-      ...(data.quickNote !== undefined && { quickNote: data.quickNote }),
-      ...(data.sleepQuality !== undefined && { sleepQuality: data.sleepQuality }),
-      ...(data.sleepHours !== undefined && { sleepHours: data.sleepHours }),
-      ...(data.anxietyScore !== undefined && { anxietyScore: data.anxietyScore }),
-      ...(data.appetiteScore !== undefined && { appetiteScore: data.appetiteScore }),
-      ...(data.socialMotivation !== undefined && { socialMotivation: data.socialMotivation }),
-      ...(data.detailedNote !== undefined && { detailedNote: data.detailedNote }),
+      ...(data.note !== undefined && { note: data.note }),
     },
   })
 }
@@ -63,37 +51,41 @@ export async function updateLog(userId: string, logId: string, data: UpdateLogBo
 export async function getLogsSummary(userId: string, from: string, to: string, groupBy: 'day' | 'week' = 'day') {
   const logs = await prisma.moodLog.findMany({
     where: { userId, logDate: { gte: new Date(from), lte: new Date(to) } },
-    include: { userMedication: { include: { medication: { select: { name: true } } } } },
+    include: { userMedication: { select: { name: true } } },
     orderBy: { logDate: 'asc' },
   })
 
-  const allMedications = await prisma.userMedication.findMany({
-    where: { userId, startDate: { gte: new Date(from), lte: new Date(to) }, NOT: { endDate: null } },
-    include: { medication: { select: { name: true } } },
-    orderBy: { startDate: 'asc' },
-  })
-
-  const medicationChanges = allMedications.map((m, i) => {
-    const prev = allMedications[i - 1]
-    const prevName = prev ? `${prev.medication?.name ?? prev.customName} ${prev.dosage}` : 'Unknown'
-    return {
-      date: m.startDate.toISOString().split('T')[0],
-      from: prevName,
-      to: `${m.medication?.name ?? m.customName} ${m.dosage}`,
+  // Detect medication/dosage changes across logs for chart annotations
+  const medicationChanges: { date: string; from: string; to: string }[] = []
+  for (let i = 1; i < logs.length; i++) {
+    const prev = logs[i - 1]
+    const curr = logs[i]
+    const prevLabel = `${prev.userMedication.name} ${prev.dosage}`
+    const currLabel = `${curr.userMedication.name} ${curr.dosage}`
+    if (prevLabel !== currLabel) {
+      medicationChanges.push({
+        date: curr.logDate.toISOString().split('T')[0],
+        from: prevLabel,
+        to: currLabel,
+      })
     }
-  })
+  }
 
-  const aggregated = logs.reduce<Record<string, number[][]>>((acc, log) => {
+  const aggregated = logs.reduce<Record<string, { mood: number[]; energy: number[] }>>((acc, log) => {
     const key = log.logDate.toISOString().split('T')[0]
-    if (!acc[key]) acc[key] = []
-    acc[key].push([log.moodScore, log.energyScore, log.anxietyScore ?? 0, log.sleepQuality ?? 0, log.appetiteScore ?? 0, log.socialMotivation ?? 0])
+    if (!acc[key]) acc[key] = { mood: [], energy: [] }
+    acc[key].mood.push(log.moodScore)
+    acc[key].energy.push(log.energyScore)
     return acc
   }, {})
 
-  const data = Object.entries(aggregated).map(([date, scores]) => {
-    const avg = (idx: number) => Math.round((scores.reduce((s, row) => s + row[idx], 0) / scores.length) * 10) / 10
-    return { date, moodScore: avg(0), energyScore: avg(1), anxietyScore: avg(2), sleepQuality: avg(3), appetiteScore: avg(4), socialMotivation: avg(5) }
-  })
+  const avg = (arr: number[]) => Math.round((arr.reduce((s, n) => s + n, 0) / arr.length) * 10) / 10
+
+  const data = Object.entries(aggregated).map(([date, scores]) => ({
+    date,
+    moodScore: avg(scores.mood),
+    energyScore: avg(scores.energy),
+  }))
 
   return { from, to, medicationChanges, data }
 }
