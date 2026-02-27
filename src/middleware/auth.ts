@@ -1,6 +1,20 @@
 import { Response, NextFunction } from 'express'
 import jwt from 'jsonwebtoken'
+import jwksRsa from 'jwks-rsa'
 import { AuthenticatedRequest, AppError } from '../types'
+
+const jwksClient = jwksRsa({
+  jwksUri: `${process.env.SUPABASE_URL}/auth/v1/.well-known/jwks.json`,
+  cache: true,
+  rateLimit: true,
+})
+
+function getKey(header: jwt.JwtHeader, callback: jwt.SigningKeyCallback) {
+  jwksClient.getSigningKey(header.kid, (err, key) => {
+    if (err) return callback(err)
+    callback(null, key?.getPublicKey())
+  })
+}
 
 export function authenticate(
   req: AuthenticatedRequest,
@@ -14,18 +28,14 @@ export function authenticate(
   }
 
   const token = authHeader.split(' ')[1]
-  const JWT_SECRET = process.env.SUPABASE_JWT_SECRET!
 
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET) as { sub: string }
-    if (!decoded.sub) {
-      return next(new AppError('UNAUTHORIZED', 'Invalid token payload', 401))
+  jwt.verify(token, getKey, { algorithms: ['ES256'] }, (err, decoded: any) => {
+    if (err || !decoded?.sub) {
+      return next(new AppError('UNAUTHORIZED', 'Invalid or expired token', 401))
     }
     req.userId = decoded.sub
     next()
-  } catch {
-    next(new AppError('UNAUTHORIZED', 'Invalid or expired token', 401))
-  }
+  })
 }
 
 export function authorizeUser(
