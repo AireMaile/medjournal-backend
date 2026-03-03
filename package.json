@@ -5,6 +5,7 @@
   "main": "dist/server.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
+    "postinstall": "prisma generate",
     "build": "prisma generate && tsc",
     "start": "node dist/server.js",
     "test": "dotenv -e .env.test -- jest --runInBand",
