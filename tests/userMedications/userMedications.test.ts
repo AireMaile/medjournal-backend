@@ -2,8 +2,7 @@
  * tests/userMedications/userMedications.test.ts
  *
  * Integration tests for user medication routes.
- * Medication name is free-text — no master list or medicationId.
- * Dosage is no longer stored here (it lives on each mood log).
+ * All tests use customName to avoid dependency on the medications master list.
  *
  * Covers:
  *   GET    /v1/users/:user_id/medications
@@ -33,8 +32,8 @@ describe('GET /v1/users/:user_id/medications', () => {
     const user = await createTestUser()
     const token = generateMockJwt(user.id)
 
-    await createTestUserMedication(user.id, { name: 'Sertraline' })
-    await createTestUserMedication(user.id, { name: 'Fluoxetine', endDate: new Date() })
+    await createTestUserMedication(user.id, { customName: 'Sertraline', dosage: '50mg' })
+    await createTestUserMedication(user.id, { customName: 'Fluoxetine', dosage: '20mg', endDate: new Date() })
 
     const res = await request(app)
       .get(`/v1/users/${user.id}/medications`)
@@ -61,8 +60,8 @@ describe('GET /v1/users/:user_id/medications', () => {
     const user = await createTestUser()
     const token = generateMockJwt(user.id)
 
-    await createTestUserMedication(user.id, { name: 'Sertraline' })
-    await createTestUserMedication(user.id, { name: 'Fluoxetine', endDate: new Date() })
+    await createTestUserMedication(user.id, { customName: 'Sertraline', dosage: '50mg' })
+    await createTestUserMedication(user.id, { customName: 'Fluoxetine', dosage: '20mg', endDate: new Date() })
 
     const res = await request(app)
       .get(`/v1/users/${user.id}/medications?active=true`)
@@ -70,7 +69,7 @@ describe('GET /v1/users/:user_id/medications', () => {
 
     expect(res.status).toBe(200)
     expect(res.body).toHaveLength(1)
-    expect(res.body[0].name).toBe('Sertraline')
+    expect(res.body[0].customName).toBe('Sertraline')
     expect(res.body[0].endDate).toBeNull()
   })
 
@@ -79,7 +78,7 @@ describe('GET /v1/users/:user_id/medications', () => {
     const otherUser = await createTestUser()
     const token = generateMockJwt(user.id)
 
-    await createTestUserMedication(otherUser.id, { name: 'Sertraline' })
+    await createTestUserMedication(otherUser.id, { customName: 'Sertraline' })
 
     const res = await request(app)
       .get(`/v1/users/${user.id}/medications`)
@@ -92,8 +91,7 @@ describe('GET /v1/users/:user_id/medications', () => {
   it('returns 401 if no token is provided', async () => {
     const user = await createTestUser()
 
-    const res = await request(app)
-      .get(`/v1/users/${user.id}/medications`)
+    const res = await request(app).get(`/v1/users/${user.id}/medications`)
 
     expect(res.status).toBe(401)
     expect(res.body.error.code).toBe('UNAUTHORIZED')
@@ -119,7 +117,7 @@ describe('GET /v1/users/:user_id/medications', () => {
 
 describe('POST /v1/users/:user_id/medications', () => {
 
-  it('creates a medication with a free-text name and returns 201', async () => {
+  it('creates a medication with customName and returns 201', async () => {
     const user = await createTestUser()
     const token = generateMockJwt(user.id)
 
@@ -127,14 +125,16 @@ describe('POST /v1/users/:user_id/medications', () => {
       .post(`/v1/users/${user.id}/medications`)
       .set('Authorization', `Bearer ${token}`)
       .send({
-        name: 'Sertraline',
+        customName: 'Sertraline',
+        dosage: '50mg',
         startDate: '2026-01-01',
         notes: 'Starting low',
       })
 
     expect(res.status).toBe(201)
     expect(res.body).toMatchObject({
-      name: 'Sertraline',
+      customName: 'Sertraline',
+      dosage: '50mg',
       notes: 'Starting low',
     })
     expect(res.body.endDate).toBeNull()
@@ -148,41 +148,33 @@ describe('POST /v1/users/:user_id/medications', () => {
     const res = await request(app)
       .post(`/v1/users/${user.id}/medications`)
       .set('Authorization', `Bearer ${token}`)
-      .send({
-        name: 'Sertraline',
-        startDate: '2026-01-01',
-      })
+      .send({ customName: 'Sertraline', dosage: '50mg', startDate: '2026-01-01' })
 
     expect(res.status).toBe(201)
     expect(res.body.notes).toBeNull()
   })
 
-  it('returns 422 if name is missing', async () => {
+  it('returns 422 if neither customName nor medicationId is provided', async () => {
     const user = await createTestUser()
     const token = generateMockJwt(user.id)
 
     const res = await request(app)
       .post(`/v1/users/${user.id}/medications`)
       .set('Authorization', `Bearer ${token}`)
-      .send({
-        startDate: '2026-01-01',
-      })
+      .send({ dosage: '50mg', startDate: '2026-01-01' })
 
     expect(res.status).toBe(422)
     expect(res.body.error.code).toBe('VALIDATION_ERROR')
   })
 
-  it('returns 422 if name is an empty string', async () => {
+  it('returns 422 if dosage is missing', async () => {
     const user = await createTestUser()
     const token = generateMockJwt(user.id)
 
     const res = await request(app)
       .post(`/v1/users/${user.id}/medications`)
       .set('Authorization', `Bearer ${token}`)
-      .send({
-        name: '',
-        startDate: '2026-01-01',
-      })
+      .send({ customName: 'Sertraline', startDate: '2026-01-01' })
 
     expect(res.status).toBe(422)
     expect(res.body.error.code).toBe('VALIDATION_ERROR')
@@ -195,9 +187,7 @@ describe('POST /v1/users/:user_id/medications', () => {
     const res = await request(app)
       .post(`/v1/users/${user.id}/medications`)
       .set('Authorization', `Bearer ${token}`)
-      .send({
-        name: 'Sertraline',
-      })
+      .send({ customName: 'Sertraline', dosage: '50mg' })
 
     expect(res.status).toBe(422)
     expect(res.body.error.code).toBe('VALIDATION_ERROR')
@@ -210,10 +200,7 @@ describe('POST /v1/users/:user_id/medications', () => {
     const res = await request(app)
       .post(`/v1/users/${user.id}/medications`)
       .set('Authorization', `Bearer ${token}`)
-      .send({
-        name: 'Sertraline',
-        startDate: 'not-a-date',
-      })
+      .send({ customName: 'Sertraline', dosage: '50mg', startDate: 'not-a-date' })
 
     expect(res.status).toBe(422)
     expect(res.body.error.code).toBe('VALIDATION_ERROR')
@@ -224,7 +211,7 @@ describe('POST /v1/users/:user_id/medications', () => {
 
     const res = await request(app)
       .post(`/v1/users/${user.id}/medications`)
-      .send({ name: 'Sertraline', startDate: '2026-01-01' })
+      .send({ customName: 'Sertraline', dosage: '50mg', startDate: '2026-01-01' })
 
     expect(res.status).toBe(401)
   })
@@ -237,7 +224,7 @@ describe('POST /v1/users/:user_id/medications', () => {
     const res = await request(app)
       .post(`/v1/users/${user.id}/medications`)
       .set('Authorization', `Bearer ${otherToken}`)
-      .send({ name: 'Sertraline', startDate: '2026-01-01' })
+      .send({ customName: 'Sertraline', dosage: '50mg', startDate: '2026-01-01' })
 
     expect(res.status).toBe(403)
   })
@@ -249,24 +236,24 @@ describe('POST /v1/users/:user_id/medications', () => {
 
 describe('PATCH /v1/users/:user_id/medications/:id', () => {
 
-  it('updates the medication name', async () => {
+  it('updates the dosage', async () => {
     const user = await createTestUser()
     const token = generateMockJwt(user.id)
-    const med = await createTestUserMedication(user.id, { name: 'Sertraline' })
+    const med = await createTestUserMedication(user.id, { customName: 'Sertraline', dosage: '50mg' })
 
     const res = await request(app)
       .patch(`/v1/users/${user.id}/medications/${med.id}`)
       .set('Authorization', `Bearer ${token}`)
-      .send({ name: 'Escitalopram' })
+      .send({ dosage: '100mg' })
 
     expect(res.status).toBe(200)
-    expect(res.body.name).toBe('Escitalopram')
+    expect(res.body.dosage).toBe('100mg')
   })
 
   it('updates the notes', async () => {
     const user = await createTestUser()
     const token = generateMockJwt(user.id)
-    const med = await createTestUserMedication(user.id, { name: 'Sertraline' })
+    const med = await createTestUserMedication(user.id, { customName: 'Sertraline', dosage: '50mg' })
 
     const res = await request(app)
       .patch(`/v1/users/${user.id}/medications/${med.id}`)
@@ -284,7 +271,7 @@ describe('PATCH /v1/users/:user_id/medications/:id', () => {
     const res = await request(app)
       .patch(`/v1/users/${user.id}/medications/${uuid()}`)
       .set('Authorization', `Bearer ${token}`)
-      .send({ name: 'Fluoxetine' })
+      .send({ dosage: '100mg' })
 
     expect(res.status).toBe(404)
     expect(res.body.error.code).toBe('NOT_FOUND')
@@ -294,12 +281,12 @@ describe('PATCH /v1/users/:user_id/medications/:id', () => {
     const user = await createTestUser()
     const otherUser = await createTestUser()
     const token = generateMockJwt(user.id)
-    const med = await createTestUserMedication(otherUser.id, { name: 'Sertraline' })
+    const med = await createTestUserMedication(otherUser.id, { customName: 'Sertraline', dosage: '50mg' })
 
     const res = await request(app)
       .patch(`/v1/users/${user.id}/medications/${med.id}`)
       .set('Authorization', `Bearer ${token}`)
-      .send({ name: 'Fluoxetine' })
+      .send({ dosage: '100mg' })
 
     expect(res.status).toBe(404)
   })
@@ -310,7 +297,7 @@ describe('PATCH /v1/users/:user_id/medications/:id', () => {
 
     const res = await request(app)
       .patch(`/v1/users/${user.id}/medications/${med.id}`)
-      .send({ name: 'Fluoxetine' })
+      .send({ dosage: '100mg' })
 
     expect(res.status).toBe(401)
   })
@@ -324,7 +311,7 @@ describe('PATCH /v1/users/:user_id/medications/:id', () => {
     const res = await request(app)
       .patch(`/v1/users/${user.id}/medications/${med.id}`)
       .set('Authorization', `Bearer ${otherToken}`)
-      .send({ name: 'Fluoxetine' })
+      .send({ dosage: '100mg' })
 
     expect(res.status).toBe(403)
   })
@@ -339,7 +326,7 @@ describe('PATCH /v1/users/:user_id/medications/:id/end', () => {
   it('ends an active medication with a provided endDate', async () => {
     const user = await createTestUser()
     const token = generateMockJwt(user.id)
-    const med = await createTestUserMedication(user.id, { name: 'Sertraline' })
+    const med = await createTestUserMedication(user.id, { customName: 'Sertraline', dosage: '50mg' })
 
     const res = await request(app)
       .patch(`/v1/users/${user.id}/medications/${med.id}/end`)
@@ -353,7 +340,7 @@ describe('PATCH /v1/users/:user_id/medications/:id/end', () => {
   it('defaults endDate to today if not provided', async () => {
     const user = await createTestUser()
     const token = generateMockJwt(user.id)
-    const med = await createTestUserMedication(user.id, { name: 'Sertraline' })
+    const med = await createTestUserMedication(user.id, { customName: 'Sertraline', dosage: '50mg' })
 
     const res = await request(app)
       .patch(`/v1/users/${user.id}/medications/${med.id}/end`)
@@ -362,17 +349,16 @@ describe('PATCH /v1/users/:user_id/medications/:id/end', () => {
 
     expect(res.status).toBe(200)
     expect(res.body.endDate).not.toBeNull()
-
     const endDate = new Date(res.body.endDate)
-    const today = new Date()
-    expect(endDate.toDateString()).toBe(today.toDateString())
+    expect(endDate.toDateString()).toBe(new Date().toDateString())
   })
 
   it('returns 422 if the medication is already ended', async () => {
     const user = await createTestUser()
     const token = generateMockJwt(user.id)
     const med = await createTestUserMedication(user.id, {
-      name: 'Sertraline',
+      customName: 'Sertraline',
+      dosage: '50mg',
       endDate: new Date('2026-01-15'),
     })
 
@@ -401,7 +387,7 @@ describe('PATCH /v1/users/:user_id/medications/:id/end', () => {
     const user = await createTestUser()
     const otherUser = await createTestUser()
     const token = generateMockJwt(user.id)
-    const med = await createTestUserMedication(otherUser.id, { name: 'Sertraline' })
+    const med = await createTestUserMedication(otherUser.id, { customName: 'Sertraline', dosage: '50mg' })
 
     const res = await request(app)
       .patch(`/v1/users/${user.id}/medications/${med.id}/end`)
@@ -446,7 +432,7 @@ describe('DELETE /v1/users/:user_id/medications/:id', () => {
   it('deletes a medication and returns 204', async () => {
     const user = await createTestUser()
     const token = generateMockJwt(user.id)
-    const med = await createTestUserMedication(user.id, { name: 'Sertraline' })
+    const med = await createTestUserMedication(user.id, { customName: 'Sertraline', dosage: '50mg' })
 
     const res = await request(app)
       .delete(`/v1/users/${user.id}/medications/${med.id}`)
@@ -458,7 +444,7 @@ describe('DELETE /v1/users/:user_id/medications/:id', () => {
   it('the medication is gone after deletion', async () => {
     const user = await createTestUser()
     const token = generateMockJwt(user.id)
-    const med = await createTestUserMedication(user.id, { name: 'Sertraline' })
+    const med = await createTestUserMedication(user.id, { customName: 'Sertraline', dosage: '50mg' })
 
     await request(app)
       .delete(`/v1/users/${user.id}/medications/${med.id}`)

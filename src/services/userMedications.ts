@@ -1,5 +1,5 @@
 import prisma from '../lib/prisma'
-import { AppError, CreateUserMedicationBody, EndUserMedicationBody } from '../types'
+import { CreateUserMedicationBody, EndUserMedicationBody, AppError } from '../types'
 
 export async function getUserMedications(userId: string, activeOnly?: boolean) {
   return prisma.userMedication.findMany({
@@ -8,43 +8,46 @@ export async function getUserMedications(userId: string, activeOnly?: boolean) {
   })
 }
 
-export async function getActiveUserMedication(userId: string) {
-  const active = await prisma.userMedication.findFirst({
-    where: { userId, endDate: null },
-    orderBy: { startDate: 'desc' },
-  })
-  if (!active) throw new AppError('NOT_FOUND', 'No active medication found for this user', 404)
-  return active
-}
-
 export async function addUserMedication(userId: string, data: CreateUserMedicationBody) {
   return prisma.userMedication.create({
     data: {
       userId,
-      name: data.name,
+      customName: data.customName ?? null,
+      dosage: data.dosage,
       startDate: new Date(data.startDate),
       notes: data.notes ?? null,
     },
   })
 }
 
-export async function updateUserMedication(userId: string, medicationId: string, data: Partial<CreateUserMedicationBody>) {
+export async function updateUserMedication(
+  userId: string,
+  medicationId: string,
+  data: Partial<CreateUserMedicationBody>
+) {
   const record = await prisma.userMedication.findUnique({ where: { id: medicationId } })
   if (!record || record.userId !== userId) throw new AppError('NOT_FOUND', 'Medication record not found', 404)
+
   return prisma.userMedication.update({
     where: { id: medicationId },
     data: {
-      ...(data.name && { name: data.name }),
+      ...(data.customName && { customName: data.customName }),
+      ...(data.dosage && { dosage: data.dosage }),
       ...(data.notes !== undefined && { notes: data.notes }),
       ...(data.startDate && { startDate: new Date(data.startDate) }),
     },
   })
 }
 
-export async function endUserMedication(userId: string, medicationId: string, data: EndUserMedicationBody) {
+export async function endUserMedication(
+  userId: string,
+  medicationId: string,
+  data: EndUserMedicationBody
+) {
   const record = await prisma.userMedication.findUnique({ where: { id: medicationId } })
   if (!record || record.userId !== userId) throw new AppError('NOT_FOUND', 'Medication record not found', 404)
   if (record.endDate) throw new AppError('VALIDATION_ERROR', 'This medication has already been ended', 422)
+
   return prisma.userMedication.update({
     where: { id: medicationId },
     data: {

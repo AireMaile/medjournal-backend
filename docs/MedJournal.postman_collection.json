@@ -1,0 +1,265 @@
+{
+  "info": {
+    "_postman_id": "medjournal-backend-collection",
+    "name": "MedJournal Backend",
+    "description": "API collection for the MedJournal backend. Base URL: {{baseUrl}} (e.g. http://localhost:3000 or your Vercel deployment URL). Set {{token}} to a valid Supabase JWT and {{userId}} to your user's UUID.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000", "type": "string" },
+    { "key": "token", "value": "", "type": "string" },
+    { "key": "userId", "value": "", "type": "string" },
+    { "key": "medicationId", "value": "", "type": "string" },
+    { "key": "logId", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            },
+            "description": "Verify the server is running."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Profile",
+      "item": [
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "profile"]
+            },
+            "description": "Returns the authenticated user's profile. User is derived from the JWT — no user_id param needed."
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Chris\",\n  \"notificationTime\": \"08:00\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "profile"]
+            },
+            "description": "Update the authenticated user's name and/or notification time. Both fields are optional. notificationTime must be in HH:MM format."
+          }
+        }
+      ]
+    },
+    {
+      "name": "User Medications",
+      "item": [
+        {
+          "name": "List User Medications",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/users/{{userId}}/medications",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "users", "{{userId}}", "medications"]
+            },
+            "description": "Returns all medications for the specified user, including active and ended prescriptions."
+          }
+        },
+        {
+          "name": "Add User Medication",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customName\": \"Sertraline\",\n  \"dosage\": \"50mg\",\n  \"startDate\": \"2026-03-01\",\n  \"notes\": \"Take in the morning with food\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/users/{{userId}}/medications",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "users", "{{userId}}", "medications"]
+            },
+            "description": "Adds a new medication for the user. customName, dosage, and startDate are required. notes is optional. startDate accepts ISO 8601 date or datetime."
+          }
+        },
+        {
+          "name": "Update User Medication",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customName\": \"Sertraline\",\n  \"dosage\": \"100mg\",\n  \"notes\": \"Dosage increased by doctor\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/users/{{userId}}/medications/{{medicationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "users", "{{userId}}", "medications", "{{medicationId}}"]
+            },
+            "description": "Updates fields on an existing medication record. All fields (customName, dosage, notes, startDate) are optional."
+          }
+        },
+        {
+          "name": "End User Medication",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"endDate\": \"2026-03-02\",\n  \"notes\": \"Switched to a different medication\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/users/{{userId}}/medications/{{medicationId}}/end",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "users", "{{userId}}", "medications", "{{medicationId}}", "end"]
+            },
+            "description": "Ends/discontinues a medication by setting its endDate. Preserves history for trend analysis. endDate and notes are both optional (defaults to today if endDate not provided)."
+          }
+        },
+        {
+          "name": "Delete User Medication",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/users/{{userId}}/medications/{{medicationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "users", "{{userId}}", "medications", "{{medicationId}}"]
+            },
+            "description": "Permanently deletes a medication record. Use End Medication instead if you want to preserve history."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Logs",
+      "item": [
+        {
+          "name": "Get Logs Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/users/{{userId}}/logs/summary",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "users", "{{userId}}", "logs", "summary"]
+            },
+            "description": "Returns an aggregated summary of the user's mood and wellness logs (averages, trends, etc.)."
+          }
+        },
+        {
+          "name": "List Logs",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/users/{{userId}}/logs",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "users", "{{userId}}", "logs"]
+            },
+            "description": "Returns all mood/wellness log entries for the user."
+          }
+        },
+        {
+          "name": "Create Log (Quick)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"logDate\": \"2026-03-02\",\n  \"logType\": \"QUICK\",\n  \"moodScore\": 4,\n  \"energyScore\": 3,\n  \"quickNote\": \"Feeling pretty good today\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/users/{{userId}}/logs",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "users", "{{userId}}", "logs"]
+            },
+            "description": "Creates a quick mood log. Requires logDate (YYYY-MM-DD), logType (QUICK), moodScore (1-5), energyScore (1-5). quickNote is optional."
+          }
+        },
+        {
+          "name": "Create Log (Detailed)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"logDate\": \"2026-03-02\",\n  \"logType\": \"DETAILED\",\n  \"moodScore\": 4,\n  \"energyScore\": 3,\n  \"sleepQuality\": 4,\n  \"sleepHours\": 7.5,\n  \"anxietyScore\": 2,\n  \"appetiteScore\": 4,\n  \"socialMotivation\": 3,\n  \"quickNote\": \"Feeling pretty good today\",\n  \"detailedNote\": \"Had a productive morning. Went for a walk in the afternoon which helped my mood.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/users/{{userId}}/logs",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "users", "{{userId}}", "logs"]
+            },
+            "description": "Creates a detailed mood log with additional wellness fields. All detailed fields (sleepQuality, sleepHours, anxietyScore, appetiteScore, socialMotivation, detailedNote) are optional. Scores are 1-5, sleepHours is 0-24."
+          }
+        },
+        {
+          "name": "Update Log",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"moodScore\": 5,\n  \"quickNote\": \"Actually had a great day!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/users/{{userId}}/logs/{{logId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "users", "{{userId}}", "logs", "{{logId}}"]
+            },
+            "description": "Partially updates an existing log entry. All fields from the create schema are available but all are optional."
+          }
+        }
+      ]
+    }
+  ]
+}

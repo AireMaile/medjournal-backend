@@ -1,8 +1,12 @@
 import { Request } from 'express'
 
+// ─── Authenticated Request ───────────────────────────────────────────────────
+
 export interface AuthenticatedRequest extends Request {
   userId: string
 }
+
+// ─── API Error ───────────────────────────────────────────────────────────────
 
 export type ErrorCode =
   | 'UNAUTHORIZED'
@@ -24,20 +28,20 @@ export class AppError extends Error {
   }
 }
 
-export interface CreateUserBody {
-  id: string
-  name: string
-  email: string
-  notificationTime?: string
-}
+// ─── Log Types ───────────────────────────────────────────────────────────────
 
-export interface UpdateUserBody {
+export type LogType = 'QUICK' | 'DETAILED'
+
+// ─── Request Body Types ──────────────────────────────────────────────────────
+
+export interface UpdateProfileBody {
   name?: string
   notificationTime?: string
 }
 
 export interface CreateUserMedicationBody {
-  name: string
+  customName?: string
+  dosage: string
   startDate: string
   notes?: string
 }
@@ -49,10 +53,16 @@ export interface EndUserMedicationBody {
 
 export interface CreateLogBody {
   logDate: string
-  dosage: string
+  logType: LogType
   moodScore: number
   energyScore: number
-  note?: string
+  quickNote?: string
+  sleepQuality?: number
+  sleepHours?: number
+  anxietyScore?: number
+  appetiteScore?: number
+  socialMotivation?: number
+  detailedNote?: string
 }
 
 export interface UpdateLogBody extends Partial<CreateLogBody> {}

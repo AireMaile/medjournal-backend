@@ -12,45 +12,49 @@ datasource db {
 }
 
 // ─────────────────────────────────────────────
-// USERS
-// Supabase Auth manages authentication.
-// This table stores app-specific user preferences,
-// linked to the Supabase auth.users UUID.
+// PROFILE
+// Supabase Auth manages authentication and owns
+// the email/password. This table stores only
+// app-specific preferences, linked to the
+// Supabase auth.users UUID.
+//
+// Rows are created automatically via a Supabase
+// database trigger when a user signs up —
+// no POST /users endpoint needed.
 // ─────────────────────────────────────────────
-model User {
-  id                   String           @id @default(uuid()) // mirrors Supabase auth UID
-  name                 String
-  email                String           @unique
-  notificationTime     String?          // e.g. "08:00" — time of daily reminder
+model Profile {
+  id                   String           @id
+  name                 String           @default("")
+  notificationTime     String?
   createdAt            DateTime         @default(now())
   updatedAt            DateTime         @updatedAt
 
   userMedications      UserMedication[]
   moodLogs             MoodLog[]
 
-  @@map("users")
+  @@map("profiles")
 }
 
 // ─────────────────────────────────────────────
 // USER MEDICATIONS
 // A user's personal prescription history.
-// Medication name is free-text — no master list.
-// When a medication is switched, the current record
+// Free-text customName — no master list.
+// When a medication changes, the current record
 // is ended (endDate set) and a new one is created.
-// This preserves full history and allows the trend
-// chart to mark change events.
+// This preserves full history for trend analysis.
 // ─────────────────────────────────────────────
 model UserMedication {
   id             String      @id @default(uuid())
   userId         String
-  name           String      // free-text medication name entered by user
+  customName     String?
+  dosage         String
   startDate      DateTime
-  endDate        DateTime?   // null = currently active
-  notes          String?     // e.g. "switched due to nausea"
+  endDate        DateTime?
+  notes          String?
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
 
-  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profile        Profile     @relation(fields: [userId], references: [id], onDelete: Cascade)
   moodLogs       MoodLog[]
 
   @@map("user_medications")
@@ -58,28 +62,29 @@ model UserMedication {
 
 // ─────────────────────────────────────────────
 // MOOD LOGS
-// One log per day per user. The userMedicationId
-// captures which prescription was active at the
-// time of logging — critical for trend analysis.
-// Dosage is captured per-log so it can vary
-// day-to-day (e.g. during titration).
+// One log per day per user.
 // ─────────────────────────────────────────────
 model MoodLog {
   id                 String          @id @default(uuid())
   userId             String
-  userMedicationId   String          // active prescription at time of log
-  logDate            DateTime        // date only — one per day
-  dosage             String          // e.g. "50mg" — captured at log time
+  userMedicationId   String?
+  logDate            DateTime
+  logType            String          // QUICK | DETAILED
   moodScore          Int             // 1–5
   energyScore        Int             // 1–5
-  note               String?         // optional free-text note
-
+  quickNote          String?
+  sleepQuality       Int?
+  sleepHours         Float?
+  anxietyScore       Int?
+  appetiteScore      Int?
+  socialMotivation   Int?
+  detailedNote       String?
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
 
-  user               User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userMedication     UserMedication  @relation(fields: [userMedicationId], references: [id])
+  profile            Profile         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userMedication     UserMedication? @relation(fields: [userMedicationId], references: [id])
 
-  @@unique([userId, logDate]) // enforce one log per user per day
+  @@unique([userId, logDate])
   @@map("mood_logs")
 }

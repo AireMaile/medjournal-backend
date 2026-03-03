@@ -26,8 +26,8 @@ export async function updateLog(req: AuthenticatedRequest, res: Response, next: 
 
 export async function getLogsSummary(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
   try {
-    const { from, to, groupBy } = req.query as Record<string, string>
-    const summary = await LogsService.getLogsSummary(req.params.user_id, from, to, (groupBy as 'day' | 'week') ?? 'day')
+    const { from, to } = req.query as Record<string, string>
+    const summary = await LogsService.getLogsSummary(req.params.user_id, from, to)
     res.json(summary)
   } catch (err) { next(err) }
 }
