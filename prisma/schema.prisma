@@ -73,11 +73,16 @@ model MoodLog {
   moodScore          Int             // 1–5
   energyScore        Int             // 1–5
   quickNote          String?
+  anhedonia          Int?              // 1–5, QUICK: loss of interest/pleasure
   sleepQuality       Int?
   sleepHours         Float?
   anxietyScore       Int?
   appetiteScore      Int?
   socialMotivation   Int?
+  concentrationScore Int?              // 1–5, DETAILED
+  functionalImpairment Int?            // 1–5, DETAILED: higher = worse
+  medicationAdherence Boolean?         // did they take their meds today
+  overallScore       Float?            // computed at write time, powers calendar
   detailedNote       String?
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt

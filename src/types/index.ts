@@ -57,11 +57,17 @@ export interface CreateLogBody {
   moodScore: number
   energyScore: number
   quickNote?: string
+  // Quick fields
+  anhedonia?: number
+  medicationAdherence?: boolean
+  // Detailed fields
   sleepQuality?: number
   sleepHours?: number
   anxietyScore?: number
   appetiteScore?: number
   socialMotivation?: number
+  concentrationScore?: number
+  functionalImpairment?: number
   detailedNote?: string
 }
 

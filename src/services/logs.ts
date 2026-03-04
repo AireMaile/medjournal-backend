@@ -15,7 +15,28 @@ export async function getLogs(userId: string, from?: string, to?: string, logDat
   })
 }
 
+function computeOverallScore(data: CreateLogBody): number {
+  // Normalize all fields to higher = better before averaging.
+  // anxiety and functionalImpairment run higher = worse, so invert them.
+  const fields: number[] = [
+    data.moodScore,
+    data.energyScore,
+  ]
+  if (data.anhedonia !== undefined)           fields.push(data.anhedonia)
+  if (data.sleepQuality !== undefined)        fields.push(data.sleepQuality)
+  if (data.appetiteScore !== undefined)       fields.push(data.appetiteScore)
+  if (data.socialMotivation !== undefined)    fields.push(data.socialMotivation)
+  if (data.concentrationScore !== undefined)  fields.push(data.concentrationScore)
+  if (data.anxietyScore !== undefined)        fields.push(6 - data.anxietyScore)
+  if (data.functionalImpairment !== undefined) fields.push(6 - data.functionalImpairment)
+
+  const sum = fields.reduce((acc, v) => acc + v, 0)
+  return Math.round((sum / fields.length) * 10) / 10
+}
+
 export async function createLog(userId: string, data: CreateLogBody) {
+  const overallScore = computeOverallScore(data)
+
   return prisma.moodLog.create({
     data: {
       userId,
@@ -24,12 +45,17 @@ export async function createLog(userId: string, data: CreateLogBody) {
       moodScore: data.moodScore,
       energyScore: data.energyScore,
       quickNote: data.quickNote ?? null,
+      anhedonia: data.anhedonia ?? null,
+      medicationAdherence: data.medicationAdherence ?? null,
       sleepQuality: data.sleepQuality ?? null,
       sleepHours: data.sleepHours ?? null,
       anxietyScore: data.anxietyScore ?? null,
       appetiteScore: data.appetiteScore ?? null,
       socialMotivation: data.socialMotivation ?? null,
+      concentrationScore: data.concentrationScore ?? null,
+      functionalImpairment: data.functionalImpairment ?? null,
       detailedNote: data.detailedNote ?? null,
+      overallScore,
     },
     include: {
       userMedication: { select: { customName: true, dosage: true } },
@@ -41,6 +67,22 @@ export async function updateLog(userId: string, logId: string, data: UpdateLogBo
   const log = await prisma.moodLog.findUnique({ where: { id: logId } })
   if (!log || log.userId !== userId) throw new AppError('NOT_FOUND', 'Log not found', 404)
 
+  // Merge existing log values with incoming updates to recompute overallScore
+  const merged: CreateLogBody = {
+    logDate: log.logDate.toISOString(),
+    logType: log.logType as 'QUICK' | 'DETAILED',
+    moodScore: data.moodScore ?? log.moodScore,
+    energyScore: data.energyScore ?? log.energyScore,
+    anhedonia: data.anhedonia ?? log.anhedonia ?? undefined,
+    sleepQuality: data.sleepQuality ?? log.sleepQuality ?? undefined,
+    appetiteScore: data.appetiteScore ?? log.appetiteScore ?? undefined,
+    socialMotivation: data.socialMotivation ?? log.socialMotivation ?? undefined,
+    concentrationScore: data.concentrationScore ?? log.concentrationScore ?? undefined,
+    anxietyScore: data.anxietyScore ?? log.anxietyScore ?? undefined,
+    functionalImpairment: data.functionalImpairment ?? log.functionalImpairment ?? undefined,
+  }
+  const overallScore = computeOverallScore(merged)
+
   return prisma.moodLog.update({
     where: { id: logId },
     data: {
@@ -48,12 +90,17 @@ export async function updateLog(userId: string, logId: string, data: UpdateLogBo
       ...(data.moodScore !== undefined && { moodScore: data.moodScore }),
       ...(data.energyScore !== undefined && { energyScore: data.energyScore }),
       ...(data.quickNote !== undefined && { quickNote: data.quickNote }),
+      ...(data.anhedonia !== undefined && { anhedonia: data.anhedonia }),
+      ...(data.medicationAdherence !== undefined && { medicationAdherence: data.medicationAdherence }),
       ...(data.sleepQuality !== undefined && { sleepQuality: data.sleepQuality }),
       ...(data.sleepHours !== undefined && { sleepHours: data.sleepHours }),
       ...(data.anxietyScore !== undefined && { anxietyScore: data.anxietyScore }),
       ...(data.appetiteScore !== undefined && { appetiteScore: data.appetiteScore }),
       ...(data.socialMotivation !== undefined && { socialMotivation: data.socialMotivation }),
+      ...(data.concentrationScore !== undefined && { concentrationScore: data.concentrationScore }),
+      ...(data.functionalImpairment !== undefined && { functionalImpairment: data.functionalImpairment }),
       ...(data.detailedNote !== undefined && { detailedNote: data.detailedNote }),
+      overallScore,
     },
   })
 }

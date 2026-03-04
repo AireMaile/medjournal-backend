@@ -14,12 +14,17 @@ const createLogSchema = z.object({
   moodScore: scoreField,
   energyScore: scoreField,
   quickNote: z.string().optional(),
+  // Quick fields
+  anhedonia: scoreField.optional(),
+  medicationAdherence: z.boolean().optional(),
   // Detailed fields
   sleepQuality: scoreField.optional(),
   sleepHours: z.number().min(0).max(24).optional(),
   anxietyScore: scoreField.optional(),
   appetiteScore: scoreField.optional(),
   socialMotivation: scoreField.optional(),
+  concentrationScore: scoreField.optional(),
+  functionalImpairment: scoreField.optional(),
   detailedNote: z.string().optional(),
 })
 
