@@ -10,14 +10,11 @@ const scoreField = z.number().int().min(1).max(5)
 
 const createLogSchema = z.object({
   logDate: z.string().date(),
-  logType: z.enum(['QUICK', 'DETAILED']),
-  moodScore: scoreField,
-  energyScore: scoreField,
+  logType: z.enum(['QUICK', 'DETAILED']).optional(),
+  moodScore: scoreField.optional(),
+  energyScore: scoreField.optional(),
   quickNote: z.string().optional(),
-  // Quick fields
   anhedonia: scoreField.optional(),
-  medicationAdherence: z.boolean().optional(),
-  // Detailed fields
   sleepQuality: scoreField.optional(),
   sleepHours: z.number().min(0).max(24).optional(),
   anxietyScore: scoreField.optional(),

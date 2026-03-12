@@ -2,15 +2,16 @@
   "info": {
     "_postman_id": "medjournal-backend-collection",
     "name": "MedJournal Backend",
-    "description": "API collection for the MedJournal backend. Base URL: {{baseUrl}} (e.g. http://localhost:3000 or your Vercel deployment URL). Set {{token}} to a valid Supabase JWT and {{userId}} to your user's UUID.",
+    "description": "Full API collection for the MedJournal backend.\n\nSetup:\n1. Set {{baseUrl}} → http://localhost:3000\n2. Set {{token}} → a valid Supabase JWT for your user\n3. Set {{userId}} → your user's UUID\n\nThen work top-to-bottom: create a medication first, copy its id into {{medicationId}}, then start logging.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "baseUrl", "value": "http://localhost:3000", "type": "string" },
-    { "key": "token", "value": "", "type": "string" },
-    { "key": "userId", "value": "", "type": "string" },
-    { "key": "medicationId", "value": "", "type": "string" },
-    { "key": "logId", "value": "", "type": "string" }
+    { "key": "baseUrl",      "value": "http://localhost:3000", "type": "string" },
+    { "key": "token",        "value": "",                      "type": "string", "description": "Supabase JWT for the authenticated user" },
+    { "key": "userId",       "value": "",                      "type": "string", "description": "UUID of the authenticated user" },
+    { "key": "medicationId", "value": "",                      "type": "string", "description": "Paste the id from Add Medication response" },
+    { "key": "logId",        "value": "",                      "type": "string", "description": "Paste the id from Create Log response" },
+    { "key": "medLogId",     "value": "",                      "type": "string", "description": "Paste the id from Log Medication response" }
   ],
   "item": [
     {
@@ -26,7 +27,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["health"]
             },
-            "description": "Verify the server is running."
+            "description": "Verify the server is running. No auth required."
           }
         }
       ]
@@ -59,23 +60,24 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Chris\",\n  \"notificationTime\": \"08:00\"\n}"
+              "raw": "{\n  \"name\": \"Christian\",\n  \"notificationTime\": \"08:00\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/v1/profile",
               "host": ["{{baseUrl}}"],
               "path": ["v1", "profile"]
             },
-            "description": "Update the authenticated user's name and/or notification time. Both fields are optional. notificationTime must be in HH:MM format."
+            "description": "Update name and/or notification time. Both fields optional. notificationTime must be HH:MM."
           }
         }
       ]
     },
     {
       "name": "User Medications",
+      "description": "Manage a user's medication history. When a dose changes, end the current record and create a new one — this preserves history for trend analysis.",
       "item": [
         {
-          "name": "List User Medications",
+          "name": "List Medications",
           "request": {
             "method": "GET",
             "header": [
@@ -86,11 +88,11 @@
               "host": ["{{baseUrl}}"],
               "path": ["v1", "users", "{{userId}}", "medications"]
             },
-            "description": "Returns all medications for the specified user, including active and ended prescriptions."
+            "description": "Returns all medications including active and ended ones."
           }
         },
         {
-          "name": "Add User Medication",
+          "name": "Add Medication — Adderall",
           "request": {
             "method": "POST",
             "header": [
@@ -99,18 +101,38 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"customName\": \"Sertraline\",\n  \"dosage\": \"50mg\",\n  \"startDate\": \"2026-03-01\",\n  \"notes\": \"Take in the morning with food\"\n}"
+              "raw": "{\n  \"customName\": \"Adderall\",\n  \"dosage\": \"10mg\",\n  \"startDate\": \"2026-01-01\",\n  \"notes\": \"Morning and afternoon doses\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/v1/users/{{userId}}/medications",
               "host": ["{{baseUrl}}"],
               "path": ["v1", "users", "{{userId}}", "medications"]
             },
-            "description": "Adds a new medication for the user. customName, dosage, and startDate are required. notes is optional. startDate accepts ISO 8601 date or datetime."
+            "description": "Add Adderall. Copy the returned id into {{medicationId}}."
           }
         },
         {
-          "name": "Update User Medication",
+          "name": "Add Medication — Lexapro",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customName\": \"Lexapro\",\n  \"dosage\": \"20mg\",\n  \"startDate\": \"2026-01-01\",\n  \"notes\": \"Take at night\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/users/{{userId}}/medications",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "users", "{{userId}}", "medications"]
+            },
+            "description": "Add a second medication to test multi-medication logging."
+          }
+        },
+        {
+          "name": "Update Medication",
           "request": {
             "method": "PATCH",
             "header": [
@@ -119,18 +141,18 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"customName\": \"Sertraline\",\n  \"dosage\": \"100mg\",\n  \"notes\": \"Dosage increased by doctor\"\n}"
+              "raw": "{\n  \"dosage\": \"20mg\",\n  \"notes\": \"Dose increased by doctor on 2026-03-01\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/v1/users/{{userId}}/medications/{{medicationId}}",
               "host": ["{{baseUrl}}"],
               "path": ["v1", "users", "{{userId}}", "medications", "{{medicationId}}"]
             },
-            "description": "Updates fields on an existing medication record. All fields (customName, dosage, notes, startDate) are optional."
+            "description": "Update dosage or notes. All fields optional."
           }
         },
         {
-          "name": "End User Medication",
+          "name": "End Medication",
           "request": {
             "method": "PATCH",
             "header": [
@@ -139,18 +161,18 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"endDate\": \"2026-03-02\",\n  \"notes\": \"Switched to a different medication\"\n}"
+              "raw": "{\n  \"endDate\": \"2026-03-10\",\n  \"notes\": \"Switched to higher dose — see new record\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/v1/users/{{userId}}/medications/{{medicationId}}/end",
               "host": ["{{baseUrl}}"],
               "path": ["v1", "users", "{{userId}}", "medications", "{{medicationId}}", "end"]
             },
-            "description": "Ends/discontinues a medication by setting its endDate. Preserves history for trend analysis. endDate and notes are both optional (defaults to today if endDate not provided)."
+            "description": "Mark a medication as ended. Preserves history for chart annotations. endDate defaults to today if omitted."
           }
         },
         {
-          "name": "Delete User Medication",
+          "name": "Delete Medication",
           "request": {
             "method": "DELETE",
             "header": [
@@ -161,14 +183,110 @@
               "host": ["{{baseUrl}}"],
               "path": ["v1", "users", "{{userId}}", "medications", "{{medicationId}}"]
             },
-            "description": "Permanently deletes a medication record. Use End Medication instead if you want to preserve history."
+            "description": "Permanently delete a medication. Use End instead if you want to preserve history."
           }
         }
       ]
     },
     {
-      "name": "Logs",
+      "name": "Mood Logs",
+      "description": "One log per day. All score fields are optional — a user can log a date with no scores on a hard day. Medication logs are separate and returned alongside via the GET.",
       "item": [
+        {
+          "name": "Create Log — Date Only (hard day)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"logDate\": \"2026-03-10\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/users/{{userId}}/logs",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "users", "{{userId}}", "logs"]
+            },
+            "description": "Minimum valid log — just a date stamp. All score fields null. Good for days when a user can't answer questions. Copy the returned id into {{logId}}."
+          }
+        },
+        {
+          "name": "Create Log — Quick",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"logDate\": \"2026-03-09\",\n  \"logType\": \"QUICK\",\n  \"moodScore\": 3,\n  \"energyScore\": 4,\n  \"quickNote\": \"Felt steadier today, got out of the house.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/users/{{userId}}/logs",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "users", "{{userId}}", "logs"]
+            },
+            "description": "Quick log with mood, energy, and a note."
+          }
+        },
+        {
+          "name": "Create Log — Detailed",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"logDate\": \"2026-03-08\",\n  \"logType\": \"DETAILED\",\n  \"moodScore\": 4,\n  \"energyScore\": 3,\n  \"quickNote\": \"Overall okay\",\n  \"anhedonia\": 2,\n  \"sleepQuality\": 3,\n  \"sleepHours\": 7.5,\n  \"anxietyScore\": 2,\n  \"appetiteScore\": 4,\n  \"socialMotivation\": 3,\n  \"concentrationScore\": 4,\n  \"functionalImpairment\": 2,\n  \"detailedNote\": \"More energy in the morning. Struggled to focus after lunch.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/users/{{userId}}/logs",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "users", "{{userId}}", "logs"]
+            },
+            "description": "Full detailed log with all optional fields. Scores are 1–5, sleepHours is 0–24. anxietyScore and functionalImpairment are inverted when computing overallScore (higher = worse)."
+          }
+        },
+        {
+          "name": "Get Logs — By Date",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/users/{{userId}}/logs?logDate=2026-03-09",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "users", "{{userId}}", "logs"],
+              "query": [{ "key": "logDate", "value": "2026-03-09" }]
+            },
+            "description": "Fetch a single day's mood log. Response includes a medicationLogs array with all medication entries for that date."
+          }
+        },
+        {
+          "name": "Get Logs — By Range",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/users/{{userId}}/logs?from=2026-03-01&to=2026-03-10",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "users", "{{userId}}", "logs"],
+              "query": [
+                { "key": "from", "value": "2026-03-01" },
+                { "key": "to",   "value": "2026-03-10" }
+              ]
+            },
+            "description": "Fetch all mood logs in a date range. Each log includes its day's medicationLogs array."
+          }
+        },
         {
           "name": "Get Logs Summary",
           "request": {
@@ -177,66 +295,15 @@
               { "key": "Authorization", "value": "Bearer {{token}}" }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/users/{{userId}}/logs/summary",
+              "raw": "{{baseUrl}}/v1/users/{{userId}}/logs/summary?from=2026-02-01&to=2026-03-10",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "users", "{{userId}}", "logs", "summary"]
+              "path": ["v1", "users", "{{userId}}", "logs", "summary"],
+              "query": [
+                { "key": "from", "value": "2026-02-01" },
+                { "key": "to",   "value": "2026-03-10" }
+              ]
             },
-            "description": "Returns an aggregated summary of the user's mood and wellness logs (averages, trends, etc.)."
-          }
-        },
-        {
-          "name": "List Logs",
-          "request": {
-            "method": "GET",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/v1/users/{{userId}}/logs",
-              "host": ["{{baseUrl}}"],
-              "path": ["v1", "users", "{{userId}}", "logs"]
-            },
-            "description": "Returns all mood/wellness log entries for the user."
-          }
-        },
-        {
-          "name": "Create Log (Quick)",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"logDate\": \"2026-03-02\",\n  \"logType\": \"QUICK\",\n  \"moodScore\": 4,\n  \"energyScore\": 3,\n  \"quickNote\": \"Feeling pretty good today\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/v1/users/{{userId}}/logs",
-              "host": ["{{baseUrl}}"],
-              "path": ["v1", "users", "{{userId}}", "logs"]
-            },
-            "description": "Creates a quick mood log. Requires logDate (YYYY-MM-DD), logType (QUICK), moodScore (1-5), energyScore (1-5). quickNote is optional."
-          }
-        },
-        {
-          "name": "Create Log (Detailed)",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"logDate\": \"2026-03-02\",\n  \"logType\": \"DETAILED\",\n  \"moodScore\": 4,\n  \"energyScore\": 3,\n  \"sleepQuality\": 4,\n  \"sleepHours\": 7.5,\n  \"anxietyScore\": 2,\n  \"appetiteScore\": 4,\n  \"socialMotivation\": 3,\n  \"quickNote\": \"Feeling pretty good today\",\n  \"detailedNote\": \"Had a productive morning. Went for a walk in the afternoon which helped my mood.\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/v1/users/{{userId}}/logs",
-              "host": ["{{baseUrl}}"],
-              "path": ["v1", "users", "{{userId}}", "logs"]
-            },
-            "description": "Creates a detailed mood log with additional wellness fields. All detailed fields (sleepQuality, sleepHours, anxietyScore, appetiteScore, socialMotivation, detailedNote) are optional. Scores are 1-5, sleepHours is 0-24."
+            "description": "Aggregated daily averages for mood and energy scores, plus medicationChanges annotations for chart overlays. Defaults to last 30 days if from/to are omitted."
           }
         },
         {
@@ -249,14 +316,151 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"moodScore\": 5,\n  \"quickNote\": \"Actually had a great day!\"\n}"
+              "raw": "{\n  \"moodScore\": 4,\n  \"quickNote\": \"Feeling better after the evening walk.\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/v1/users/{{userId}}/logs/{{logId}}",
               "host": ["{{baseUrl}}"],
               "path": ["v1", "users", "{{userId}}", "logs", "{{logId}}"]
             },
-            "description": "Partially updates an existing log entry. All fields from the create schema are available but all are optional."
+            "description": "Patch any subset of fields on an existing log. overallScore is recomputed automatically from the merged values."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Medication Logs",
+      "description": "Track individual medication intake events, separate from mood logs. Multiple entries per day are supported (e.g. Adderall AM + PM). Joined to mood logs by userId + logDate.",
+      "item": [
+        {
+          "name": "Get Checklist — For a Date",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/users/{{userId}}/medication-logs?date=2026-03-10",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "users", "{{userId}}", "medication-logs"],
+              "query": [{ "key": "date", "value": "2026-03-10" }]
+            },
+            "description": "Returns all active medications merged with that day's log entries.\n\nEmpty logEntries = not yet logged for that day.\nThis is the primary endpoint for the frontend's daily medication checklist screen."
+          }
+        },
+        {
+          "name": "Log Medication — Adderall Morning (taken)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userMedicationId\": \"{{medicationId}}\",\n  \"logDate\": \"2026-03-10\",\n  \"timeOfDay\": \"MORNING\",\n  \"taken\": true,\n  \"notes\": \"Took with breakfast.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/users/{{userId}}/medication-logs",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "users", "{{userId}}", "medication-logs"]
+            },
+            "description": "Log the morning Adderall dose as taken. Copy the returned id into {{medLogId}}."
+          }
+        },
+        {
+          "name": "Log Medication — Adderall Afternoon (skipped)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userMedicationId\": \"{{medicationId}}\",\n  \"logDate\": \"2026-03-10\",\n  \"timeOfDay\": \"AFTERNOON\",\n  \"taken\": false,\n  \"notes\": \"Forgot it at home.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/users/{{userId}}/medication-logs",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "users", "{{userId}}", "medication-logs"]
+            },
+            "description": "Same medication, same day, different time — this is how you handle Adderall AM + PM. taken: false records a missed dose."
+          }
+        },
+        {
+          "name": "Log Medication — Lexapro Evening (taken)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userMedicationId\": \"{{medicationId}}\",\n  \"logDate\": \"2026-03-10\",\n  \"timeOfDay\": \"EVENING\",\n  \"taken\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/users/{{userId}}/medication-logs",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "users", "{{userId}}", "medication-logs"]
+            },
+            "description": "A third entry on the same day — different medication (update userMedicationId to your Lexapro id), different time."
+          }
+        },
+        {
+          "name": "Toggle Taken",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"taken\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/users/{{userId}}/medication-logs/{{medLogId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "users", "{{userId}}", "medication-logs", "{{medLogId}}"]
+            },
+            "description": "Flip taken on an existing entry. The frontend checklist toggle calls this."
+          }
+        },
+        {
+          "name": "Update Time of Day + Note",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"timeOfDay\": \"AFTERNOON\",\n  \"notes\": \"Actually took it after lunch, not morning.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/users/{{userId}}/medication-logs/{{medLogId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "users", "{{userId}}", "medication-logs", "{{medLogId}}"]
+            },
+            "description": "Correct the time slot and add a note. Any combination of taken, timeOfDay, and notes can be patched together."
+          }
+        },
+        {
+          "name": "Delete Medication Log Entry",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/users/{{userId}}/medication-logs/{{medLogId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "users", "{{userId}}", "medication-logs", "{{medLogId}}"]
+            },
+            "description": "Remove a specific log entry. Returns 204 No Content on success."
           }
         }
       ]

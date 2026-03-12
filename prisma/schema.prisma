@@ -31,6 +31,7 @@ model Profile {
 
   userMedications      UserMedication[]
   moodLogs             MoodLog[]
+  medicationLogs       MedicationLog[]
 
   @@map("profiles")
 }
@@ -44,18 +45,18 @@ model Profile {
 // This preserves full history for trend analysis.
 // ─────────────────────────────────────────────
 model UserMedication {
-  id             String      @id @default(uuid())
-  userId         String
-  customName     String?
-  dosage         String
-  startDate      DateTime
-  endDate        DateTime?
-  notes          String?
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
+  id              String          @id @default(uuid())
+  userId          String
+  customName      String?
+  dosage          String
+  startDate       DateTime
+  endDate         DateTime?
+  notes           String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 
-  profile        Profile     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  moodLogs       MoodLog[]
+  profile         Profile         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  medicationLogs  MedicationLog[]
 
   @@map("user_medications")
 }
@@ -63,33 +64,56 @@ model UserMedication {
 // ─────────────────────────────────────────────
 // MOOD LOGS
 // One log per day per user.
+// All scored fields are optional — users are not
+// required to answer every question on a given day.
 // ─────────────────────────────────────────────
 model MoodLog {
-  id                 String          @id @default(uuid())
-  userId             String
-  userMedicationId   String?
-  logDate            DateTime
-  logType            String          // QUICK | DETAILED
-  moodScore          Int             // 1–5
-  energyScore        Int             // 1–5
-  quickNote          String?
-  anhedonia          Int?              // 1–5, QUICK: loss of interest/pleasure
-  sleepQuality       Int?
-  sleepHours         Float?
-  anxietyScore       Int?
-  appetiteScore      Int?
-  socialMotivation   Int?
-  concentrationScore Int?              // 1–5, DETAILED
-  functionalImpairment Int?            // 1–5, DETAILED: higher = worse
-  medicationAdherence Boolean?         // did they take their meds today
-  overallScore       Float?            // computed at write time, powers calendar
-  detailedNote       String?
-  createdAt          DateTime        @default(now())
-  updatedAt          DateTime        @updatedAt
+  id                   String    @id @default(uuid())
+  userId               String
+  logDate              DateTime
+  logType              String?   // QUICK | DETAILED
+  moodScore            Int?      // 1–5
+  energyScore          Int?      // 1–5
+  quickNote            String?
+  anhedonia            Int?      // 1–5, loss of interest/pleasure
+  sleepQuality         Int?      // 1–5
+  sleepHours           Float?
+  anxietyScore         Int?      // 1–5
+  appetiteScore        Int?      // 1–5
+  socialMotivation     Int?      // 1–5
+  concentrationScore   Int?      // 1–5
+  functionalImpairment Int?      // 1–5, higher = worse
+  overallScore         Float?    // computed at write time, powers calendar
+  detailedNote         String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
-  profile            Profile         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userMedication     UserMedication? @relation(fields: [userMedicationId], references: [id])
+  profile              Profile   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, logDate])
   @@map("mood_logs")
+}
+
+// ─────────────────────────────────────────────
+// MEDICATION LOGS
+// Tracks each medication intake event separately
+// from mood logs. Multiple entries per day are
+// supported (e.g. Adderall AM + PM).
+// Decoupled from MoodLog — joined by userId + logDate.
+// ─────────────────────────────────────────────
+model MedicationLog {
+  id                String         @id @default(uuid())
+  userId            String
+  userMedicationId  String
+  logDate           DateTime
+  timeOfDay         String         // MORNING | AFTERNOON | EVENING
+  taken             Boolean        @default(false)
+  notes             String?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  profile           Profile        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userMedication    UserMedication @relation(fields: [userMedicationId], references: [id], onDelete: Cascade)
+
+  @@map("medication_logs")
 }

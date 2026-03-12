@@ -28,9 +28,10 @@ export class AppError extends Error {
   }
 }
 
-// ─── Log Types ───────────────────────────────────────────────────────────────
+// ─── Enums ───────────────────────────────────────────────────────────────────
 
 export type LogType = 'QUICK' | 'DETAILED'
+export type TimeOfDay = 'MORNING' | 'AFTERNOON' | 'EVENING'
 
 // ─── Request Body Types ──────────────────────────────────────────────────────
 
@@ -51,16 +52,15 @@ export interface EndUserMedicationBody {
   notes?: string
 }
 
+// All scored fields are optional — users are not required to
+// answer every question on a given day.
 export interface CreateLogBody {
   logDate: string
-  logType: LogType
-  moodScore: number
-  energyScore: number
+  logType?: LogType
+  moodScore?: number
+  energyScore?: number
   quickNote?: string
-  // Quick fields
   anhedonia?: number
-  medicationAdherence?: boolean
-  // Detailed fields
   sleepQuality?: number
   sleepHours?: number
   anxietyScore?: number
@@ -72,3 +72,17 @@ export interface CreateLogBody {
 }
 
 export interface UpdateLogBody extends Partial<CreateLogBody> {}
+
+export interface CreateMedicationLogBody {
+  userMedicationId: string
+  logDate: string
+  timeOfDay: TimeOfDay
+  taken: boolean
+  notes?: string
+}
+
+export interface UpdateMedicationLogBody {
+  timeOfDay?: TimeOfDay
+  taken?: boolean
+  notes?: string
+}
