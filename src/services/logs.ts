@@ -45,8 +45,8 @@ function computeOverallScore(data: CreateLogBody): number | null {
   if (data.appetiteScore !== undefined)        fields.push(data.appetiteScore)
   if (data.socialMotivation !== undefined)     fields.push(data.socialMotivation)
   if (data.concentrationScore !== undefined)   fields.push(data.concentrationScore)
-  if (data.anxietyScore !== undefined)         fields.push(6 - data.anxietyScore)
-  if (data.functionalImpairment !== undefined) fields.push(6 - data.functionalImpairment)
+  if (data.anxietyScore !== undefined)         fields.push(data.anxietyScore)
+  if (data.functionalImpairment !== undefined) fields.push(data.functionalImpairment)
 
   if (fields.length === 0) return null
 
