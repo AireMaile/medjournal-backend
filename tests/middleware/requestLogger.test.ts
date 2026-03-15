@@ -17,8 +17,9 @@ describe('requestLogger middleware', () => {
     const response = await request(app).get('/test')
     expect(response.status).toBe(200)
     expect(response.body.reqId).toBeDefined()
-    expect(typeof response.body.reqId).toBe('string')
-    expect(response.body.reqId.length).toBeGreaterThan(0)
+    expect(response.body.reqId).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+    )
   })
 
   it('generates a unique reqId per request', async () => {
