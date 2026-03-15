@@ -56,8 +56,4 @@ export const logger = pino({
   }),
 })
 
-export function createChildLogger(context: { reqId: string; userId?: string }) {
-  return logger.child(context)
-}
-
 export default logger

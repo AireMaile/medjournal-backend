@@ -1,3 +1,4 @@
+import { createPublicKey } from 'crypto'
 import { Response, NextFunction } from 'express'
 import jwt from 'jsonwebtoken'
 import { AuthenticatedRequest, AppError } from '../types'
@@ -61,16 +62,15 @@ export function authenticate(
         if (!key) return next(new AppError('UNAUTHORIZED', 'Signing key not found', 401))
 
         // Convert JWK to PEM using Node crypto
-        const { createPublicKey } = require('crypto')
         const publicKey = createPublicKey({ key, format: 'jwk' })
 
         try {
           const decoded = jwt.verify(token, publicKey, { algorithms: ['ES256'] }) as { sub: string }
           if (!decoded.sub) return next(new AppError('UNAUTHORIZED', 'Invalid token payload', 401))
           req.userId = decoded.sub
-          next()
+          return next()
         } catch {
-          next(new AppError('UNAUTHORIZED', 'Invalid or expired token', 401))
+          return next(new AppError('UNAUTHORIZED', 'Invalid or expired token', 401))
         }
       })
       .catch(() => next(new AppError('UNAUTHORIZED', 'Could not verify token', 401)))
@@ -89,5 +89,5 @@ export function authorizeUser(
   if (req.userId !== user_id) {
     return next(new AppError('FORBIDDEN', 'You do not have access to this resource', 403))
   }
-  next()
+  return next()
 }
