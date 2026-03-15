@@ -1,9 +1,11 @@
 import express from 'express'
 import routes from './routes'
 import { errorHandler } from './middleware/errorHandler'
+import { requestLogger } from './middleware/requestLogger'
 
 const app = express()
 
+app.use(requestLogger)
 app.use(express.json())
 
 // Health check — useful for deployment and CI
