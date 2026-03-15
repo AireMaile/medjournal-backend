@@ -9,13 +9,13 @@ export function requestLogger(req: Request, res: Response, next: NextFunction): 
   const startTime = Date.now()
   const child = logger.child({ reqId })
 
-  child.info({ method: req.method, url: req.path }, 'request received')
+  child.info({ method: req.method, path: req.path }, 'request received')
 
   res.on('finish', () => {
     const durationMs = Date.now() - startTime
     const status = res.statusCode
 
-    const logData = { method: req.method, url: req.path, status, durationMs, reqId }
+    const logData = { method: req.method, path: req.path, status, durationMs }
 
     if (status >= 500) {
       child.error(logData, 'request completed')
