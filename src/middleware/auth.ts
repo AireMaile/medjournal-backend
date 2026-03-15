@@ -54,8 +54,13 @@ export function authenticate(
       return next(new AppError('UNAUTHORIZED', 'Invalid token header', 401))
     }
 
-    // Fetch the public key from Supabase JWKS endpoint
-    fetch(jwksUri)
+    // Fetch the public key from Supabase JWKS endpoint.
+    // AbortController enforces a 10s timeout so the request cannot hang
+    // indefinitely in the Vercel serverless environment.
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 10_000)
+
+    fetch(jwksUri, { signal: controller.signal })
       .then(res => res.json())
       .then((jwks: any) => {
         const key = jwks.keys?.find((k: any) => k.kid === kid)
@@ -74,6 +79,7 @@ export function authenticate(
         }
       })
       .catch(() => next(new AppError('UNAUTHORIZED', 'Could not verify token', 401)))
+      .finally(() => clearTimeout(timeoutId))
     return
   }
 

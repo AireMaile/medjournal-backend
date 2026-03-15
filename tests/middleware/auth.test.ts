@@ -5,6 +5,7 @@
  * No database or supertest — uses mock req/res/next objects.
  */
 
+import { generateKeyPairSync } from 'crypto'
 import jwt from 'jsonwebtoken'
 import { authenticate, authorizeUser } from '../../src/middleware/auth'
 import { AppError } from '../../src/types'
@@ -87,6 +88,35 @@ describe('authenticate middleware', () => {
       expect(err.message).toBe('Invalid token payload')
       done()
     })
+  })
+})
+
+describe('authenticate middleware — ES256 JWKS fetch', () => {
+  const userId = '550e8400-e29b-41d4-a716-446655440000'
+  const originalFetch = global.fetch
+
+  beforeEach(() => {
+    process.env.SUPABASE_URL = 'https://test.supabase.co'
+  })
+
+  afterEach(() => {
+    global.fetch = originalFetch
+  })
+
+  it('passes an AbortSignal to the JWKS fetch so requests cannot hang indefinitely', async () => {
+    let capturedSignal: AbortSignal | null | undefined
+    global.fetch = jest.fn().mockImplementation((_url: string, options?: RequestInit) => {
+      capturedSignal = options?.signal
+      return Promise.reject(new Error('test'))
+    }) as any
+
+    const { privateKey } = generateKeyPairSync('ec', { namedCurve: 'P-256' })
+    const token = jwt.sign({ sub: userId }, privateKey, { algorithm: 'ES256' } as any)
+    const req = mockReq({ headers: { authorization: `Bearer ${token}` } })
+
+    await new Promise<void>(resolve => authenticate(req, mockRes(), () => resolve()))
+
+    expect(capturedSignal).toBeInstanceOf(AbortSignal)
   })
 })
 
