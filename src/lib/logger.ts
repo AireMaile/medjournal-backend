@@ -27,7 +27,12 @@ const PHI_REDACT_PATHS = [
   'taken',
   'timeOfDay',
   'logDate',
+  'startDate',
+  'endDate',
   'body',
+  // err.message is redacted because pino's err serializer includes it, and Prisma
+  // error messages can echo back field values (e.g. constraint violation details).
+  'err.message',
   // Wildcard variants for free-text PHI fields that may appear nested
   '*.notes',
   '*.quickNote',

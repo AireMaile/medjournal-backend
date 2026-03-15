@@ -19,6 +19,7 @@ export function errorHandler(
     return
   }
 
+  // Prisma does not export a stable typed error class for these codes at v5
   if ((err as any).code === 'P2002') {
     logger.warn({ reqId, code: 'LOG_ALREADY_EXISTS', status: 409 }, 'app error')
     res.status(409).json({
