@@ -1,10 +1,5 @@
 import prisma from '../lib/prisma'
-import { AppError } from '../types'
-
-export interface UpdateProfileBody {
-  name?: string
-  notificationTime?: string
-}
+import { AppError, UpdateProfileBody } from '../types'
 
 export async function getProfile(userId: string) {
   const profile = await prisma.profile.findUnique({ where: { id: userId } })
