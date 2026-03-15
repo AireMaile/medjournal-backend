@@ -1,5 +1,11 @@
 import pino from 'pino'
 
+// PHI redaction — HIPAA Safe Harbor
+// This list is defence-in-depth only. The primary rule is: never pass objects
+// containing PHI directly to log calls. Redaction here catches accidental
+// leakage; it is not a substitute for careful log-call hygiene.
+// Fields listed cover Safe Harbor identifiers and sensitive free-text authored
+// by users. Wildcard variants (*.field) catch the same keys when nested.
 const PHI_REDACT_PATHS = [
   'name',
   'customName',
@@ -22,7 +28,11 @@ const PHI_REDACT_PATHS = [
   'timeOfDay',
   'logDate',
   'body',
-  'err.message',
+  // Wildcard variants for free-text PHI fields that may appear nested
+  '*.notes',
+  '*.quickNote',
+  '*.detailedNote',
+  '*.customName',
 ]
 
 const isDevelopment = process.env.NODE_ENV === 'development'
