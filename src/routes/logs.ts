@@ -27,11 +27,11 @@ const createLogSchema = z.object({
 
 const updateLogSchema = createLogSchema.partial()
 
-const auth = [authenticate as any, authorizeUser as any]
+const auth = [authenticate, authorizeUser]
 
-router.get('/summary', ...auth, LogsController.getLogsSummary as any)
-router.get('/', ...auth, LogsController.getLogs as any)
-router.post('/', ...auth, validate(createLogSchema), LogsController.createLog as any)
-router.patch('/:log_id', ...auth, validate(updateLogSchema), LogsController.updateLog as any)
+router.get('/summary', ...auth, LogsController.getLogsSummary)
+router.get('/', ...auth, LogsController.getLogs)
+router.post('/', ...auth, validate(createLogSchema), LogsController.createLog)
+router.patch('/:log_id', ...auth, validate(updateLogSchema), LogsController.updateLog)
 
 export default router
