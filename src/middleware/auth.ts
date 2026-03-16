@@ -1,7 +1,7 @@
 import { createPublicKey } from 'crypto'
-import { Response, NextFunction } from 'express'
+import { Request, Response, NextFunction } from 'express'
 import jwt from 'jsonwebtoken'
-import { AuthenticatedRequest, AppError } from '../types'
+import { AppError } from '../types'
 
 // Decode the token header without verifying to check the algorithm
 function getTokenAlgorithm(token: string): string | null {
@@ -14,7 +14,7 @@ function getTokenAlgorithm(token: string): string | null {
 }
 
 export function authenticate(
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): void {
@@ -87,7 +87,7 @@ export function authenticate(
 }
 
 export function authorizeUser(
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): void {
