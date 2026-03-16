@@ -12,7 +12,7 @@ const updateProfileSchema = z.object({
 })
 
 // All profile routes use the token's own userId — no :user_id param needed
-router.get('/', authenticate as any, ProfileController.getProfile as any)
-router.patch('/', authenticate as any, validate(updateProfileSchema), ProfileController.updateProfile as any)
+router.get('/', authenticate, ProfileController.getProfile)
+router.patch('/', authenticate, validate(updateProfileSchema), ProfileController.updateProfile)
 
 export default router

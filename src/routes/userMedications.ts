@@ -25,12 +25,12 @@ const endMedicationSchema = z.object({
   notes: z.string().optional(),
 })
 
-const auth = [authenticate as any, authorizeUser as any]
+const auth = [authenticate, authorizeUser]
 
-router.get('/', ...auth, UserMedicationsController.getUserMedications as any)
-router.post('/', ...auth, validate(addMedicationSchema), UserMedicationsController.addUserMedication as any)
-router.patch('/:medication_id', ...auth, validate(updateMedicationSchema), UserMedicationsController.updateUserMedication as any)
-router.patch('/:medication_id/end', ...auth, validate(endMedicationSchema), UserMedicationsController.endUserMedication as any)
-router.delete('/:medication_id', ...auth, UserMedicationsController.deleteUserMedication as any)
+router.get('/', ...auth, UserMedicationsController.getUserMedications)
+router.post('/', ...auth, validate(addMedicationSchema), UserMedicationsController.addUserMedication)
+router.patch('/:medication_id', ...auth, validate(updateMedicationSchema), UserMedicationsController.updateUserMedication)
+router.patch('/:medication_id/end', ...auth, validate(endMedicationSchema), UserMedicationsController.endUserMedication)
+router.delete('/:medication_id', ...auth, UserMedicationsController.deleteUserMedication)
 
 export default router

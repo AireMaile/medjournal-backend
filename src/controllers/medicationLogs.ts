@@ -1,5 +1,5 @@
-import { Response, NextFunction } from 'express'
-import { AuthenticatedRequest, AppError } from '../types'
+import { Request, Response, NextFunction } from 'express'
+import { AppError } from '../types'
 import * as MedicationLogsService from '../services/medicationLogs'
 
 /**
@@ -11,7 +11,7 @@ import * as MedicationLogsService from '../services/medicationLogs'
  *
  * Returns 422 if neither is provided.
  */
-export async function getMedicationLogs(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+export async function getMedicationLogs(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const { date, from, to } = req.query as Record<string, string>
 
@@ -31,21 +31,21 @@ export async function getMedicationLogs(req: AuthenticatedRequest, res: Response
   } catch (err) { next(err) }
 }
 
-export async function createMedicationLog(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+export async function createMedicationLog(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const log = await MedicationLogsService.createMedicationLog(req.params.user_id, req.body)
     res.status(201).json(log)
   } catch (err) { next(err) }
 }
 
-export async function updateMedicationLog(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+export async function updateMedicationLog(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const log = await MedicationLogsService.updateMedicationLog(req.params.user_id, req.params.log_id, req.body)
     res.json(log)
   } catch (err) { next(err) }
 }
 
-export async function deleteMedicationLog(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+export async function deleteMedicationLog(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     await MedicationLogsService.deleteMedicationLog(req.params.user_id, req.params.log_id)
     res.status(204).send()

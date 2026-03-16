@@ -1,11 +1,3 @@
-import { Request } from 'express'
-
-// ─── Authenticated Request ───────────────────────────────────────────────────
-
-export interface AuthenticatedRequest extends Request {
-  userId: string
-}
-
 // ─── API Error ───────────────────────────────────────────────────────────────
 
 export type ErrorCode =
